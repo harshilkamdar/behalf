@@ -1,5 +1,3 @@
-import numpy as np
-
 class node:
     def __init__(self, box, particles, masses):
         """
@@ -18,6 +16,7 @@ class node:
         self.masses = masses #masses of particles belonging to this node
         
         self.M = np.sum(self.masses) #total mass of all particles in this node
+        self.leaf = False
         
     def insert(self, particle):
         """
@@ -32,6 +31,7 @@ class node:
         if(self.n == 0): #no particles in this node/cell
             self.p = particle #assign particle to this node/cell
             self.com = particle #com is just the particle position 
+            self.leaf = True
         else:
             if(self.n == 1): #leaf node
                 self.create_children(self.box) #create children (aka subtree)
@@ -40,6 +40,7 @@ class node:
                 self.p = None #once it's reassigned, the particle belonging to this node/cell becomes none
             for child in self.children:
                 child.insert(particle) #iterate over the children and assign the input particle
+            self.leaf = False
                 
         self.update_com() #update center of mass of this node/cell once the particle is assigned
         self.n += 1 #update number of particles belonging to this node/cell.
@@ -140,6 +141,27 @@ class bbox:
         returns center of bounding box
         """
         return np.array([((self.xlow + self.xhigh))/2., (self.ylow + self.yhigh)/2., (self.zlow + self.zhigh)/2.])
-
-
-
+    
+    def bounds(self):
+        """
+        returns min/max values of the bounding box
+        """
+        return np.array([self.bb.min(), self.bb.max()])
+    
+class octree:
+    def __init__(self, particles, masses, box, softening):
+        self.particles = particles
+        self.masses = masses
+        self.box = box
+        self.softening = softening
+        
+    def create_tree(self):
+        bl, bh = box.bounds()
+        bb = bbox([[bl, bh], [bl, bh], [bl, bh]]) #does this make sense to do? or should i use the particle min/maxes
+        root = node(bb, self.particles, self.masses)
+        
+        for i in xrange(len(self.particles)): #parallelize tree construction!!!!
+            root.insert(self.particles[i])
+        
+    def force(self, theta):
+        return
